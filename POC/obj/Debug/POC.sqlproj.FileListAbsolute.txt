@@ -1,0 +1,10 @@
+C:\scyrus\GitHub\SQL-DevOps\POC\bin\Debug\POC.dacpac
+C:\scyrus\GitHub\SQL-DevOps\POC\bin\Debug\POC.dll
+C:\scyrus\GitHub\SQL-DevOps\POC\bin\Debug\POC.pdb
+C:\scyrus\GitHub\SQL-DevOps\POC\obj\Debug\POC.sqlprojAssemblyReference.cache
+C:\scyrus\GitHub\SQL-DevOps\POC\obj\Debug\Model.xml
+C:\scyrus\GitHub\SQL-DevOps\POC\obj\Debug\refactor.xml
+C:\scyrus\GitHub\SQL-DevOps\POC\obj\Debug\postdeploy.sql
+C:\scyrus\GitHub\SQL-DevOps\POC\obj\Debug\predeploy.sql
+C:\scyrus\GitHub\SQL-DevOps\POC\obj\Debug\POC.dll
+C:\scyrus\GitHub\SQL-DevOps\POC\obj\Debug\POC.pdb

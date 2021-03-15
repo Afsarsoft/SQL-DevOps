@@ -1,0 +1,1091 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DataSchemaModel FileFormatVersion="1.2" SchemaVersion="2.9" DspName="Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider" CollationLcid="1033" CollationCaseSensitive="False" xmlns="http://schemas.microsoft.com/sqlserver/dac/Serialization/2012/02">
+	<Header>
+		<CustomData Category="AnsiNulls">
+			<Metadata Name="AnsiNulls" Value="True" />
+		</CustomData>
+		<CustomData Category="QuotedIdentifier">
+			<Metadata Name="QuotedIdentifier" Value="True" />
+		</CustomData>
+		<CustomData Category="CompatibilityMode">
+			<Metadata Name="CompatibilityMode" Value="130" />
+		</CustomData>
+		<CustomData Category="Reference" Type="Assembly">
+			<Metadata Name="LogicalName" Value="POC.dll" />
+			<Metadata Name="FileName" Value="C:\SCYRUS\GITHUB\SQL-DEVOPS\POC\OBJ\DEBUG\POC.DLL" />
+			<Metadata Name="AssemblyName" Value="POC" />
+			<Metadata Name="PermissionSet" Value="SAFE" />
+			<Metadata Name="Owner" Value="" />
+			<Metadata Name="GenerateSqlClrDdl" Value="True" />
+			<Metadata Name="IsVisible" Value="True" />
+			<Metadata Name="IsModelAware" Value="True" />
+			<Metadata Name="SkipCreationIfEmpty" Value="True" />
+			<Metadata Name="AssemblySymbolsName" Value="C:\scyrus\GitHub\SQL-DevOps\POC\obj\Debug\POC.pdb" />
+		</CustomData>
+		<CustomData Category="SqlCmdVariables" Type="SqlCmdVariable" />
+	</Header>
+	<Model>
+		<Element Type="SqlDatabaseOptions">
+			<Property Name="Collation" Value="SQL_Latin1_General_CP1_CI_AS" />
+			<Property Name="IsAnsiNullDefaultOn" Value="True" />
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Property Name="IsAnsiWarningsOn" Value="True" />
+			<Property Name="IsArithAbortOn" Value="True" />
+			<Property Name="IsConcatNullYieldsNullOn" Value="True" />
+			<Property Name="IsTornPageProtectionOn" Value="False" />
+			<Property Name="IsFullTextEnabled" Value="True" />
+			<Property Name="PageVerifyMode" Value="3" />
+			<Property Name="DefaultLanguage" Value="" />
+			<Property Name="DefaultFullTextLanguage" Value="" />
+			<Property Name="QueryStoreStaleQueryThreshold" Value="367" />
+			<Relationship Name="DefaultFilegroup">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[PRIMARY]" />
+				</Entry>
+			</Relationship>
+		</Element>
+		<Element Type="SqlSchema" Name="[ddw1]">
+			<Relationship Name="Authorizer">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[dbo]" />
+				</Entry>
+			</Relationship>
+		</Element>
+		<Element Type="SqlProcedure" Name="[ddw1].[CreateFKs]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: CreateFKs.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      ddw1.CreateFKs
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Creates FKs for all needed ddw1 tables  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC ddw1.CreateFKs
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50)
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SP = OBJECT_NAME(@@PROCID)
+SET @StartTime = GETDATE();
+   
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed adding FOREIGN KEY for Table ddw1.Order.';
+
+IF EXISTS (SELECT *
+FROM sys.foreign_keys
+WHERE object_id = OBJECT_ID(N'ddw1.FK_Order_Customer_CustomerID')
+  AND parent_object_id = OBJECT_ID(N'ddw1.Order')
+)
+BEGIN
+  SET @Message = 'FOREIGN KEY for Table ddw1.Order already exist, skipping....';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+END
+ELSE
+BEGIN
+  ALTER TABLE ddw1.[Order]
+   ADD CONSTRAINT FK_Order_Customer_CustomerID FOREIGN KEY (CustomerID)
+      REFERENCES ddw1.Customer (CustomerID),
+    CONSTRAINT FK_Order_Product_ProductID FOREIGN KEY (ProductID)
+      REFERENCES ddw1.Product (ProductID);
+
+  SET @Message = 'Completed adding FOREIGN KEY for TABLE ddw1.Order.';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+END
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References Name="[ddw1].[Order]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[FK_Order_Customer_CustomerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order].[CustomerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Customer]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Customer].[CustomerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[FK_Order_Product_ProductID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order].[ProductID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Product]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Product].[ProductID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[ddw1]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="3212" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE ddw1.CreateFKs&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[ddw1].[CreateTables]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: CreateTables.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      ddw1.CreateTables
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Creates all needed ddw1 tables  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC ddw1.CreateTables
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50)
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';  
+
+SET @SP = OBJECT_NAME(@@PROCID)
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');  
+ 
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table ddw1.Product.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'ddw1.Product') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table ddw1.Product already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+END
+ELSE
+BEGIN
+    CREATE TABLE ddw1.Product
+    (
+        ProductID TINYINT NOT NULL,
+        Name NVARCHAR(50) NOT NULL,
+        CONSTRAINT PK_Product_ProductID PRIMARY KEY CLUSTERED (ProductID),
+        CONSTRAINT UK_Product_Name UNIQUE (Name)
+    );
+
+    SET @Message = 'Completed CREATE TABLE ddw1.Product.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table ddw1.Customer.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'ddw1.Customer') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table ddw1.Customer already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+END
+ELSE
+BEGIN
+    CREATE TABLE ddw1.Customer
+    (
+        CustomerID TINYINT NOT NULL,
+        Name NVARCHAR(50) NOT NULL,
+        CONSTRAINT PK_Customer_CustomerID PRIMARY KEY CLUSTERED (CustomerID),
+        CONSTRAINT UK_Customer_Name UNIQUE (Name)
+    );
+
+    SET @Message = 'Completed CREATE TABLE ddw1.Customer.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table ddw1.Order.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'ddw1.Order') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table ddw1.Order already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+END
+ELSE
+BEGIN
+    CREATE TABLE ddw1.[Order]
+    (
+        OrderID INT NOT NULL,
+        CustomerID TINYINT NOT NULL,
+        ProductID TINYINT NOT NULL,
+        OrderDate DATE NOT NULL,
+        TotalAmount MONEY NOT NULL,
+        CONSTRAINT PK_Order_StoreID PRIMARY KEY CLUSTERED (OrderID)
+    );
+
+    SET @Message = 'Completed CREATE TABLE ddw1.Order.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+END
+-------------------------------------------------------------------------------
+
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));   
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References Name="[ddw1].[Product]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Product].[ProductID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Product].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[PK_Product_ProductID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Product].[ProductID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[UK_Product_Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Product].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Customer]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Customer].[CustomerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Customer].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[PK_Customer_CustomerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Customer].[CustomerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[UK_Customer_Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Customer].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order].[OrderID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order].[CustomerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order].[ProductID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order].[OrderDate]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[date]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order].[TotalAmount]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[money]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[PK_Order_StoreID]" />
+				</Entry>
+				<Entry>
+					<References Name="[ddw1].[Order].[OrderID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[ddw1]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="4762" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE ddw1.CreateTables&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlTable" Name="[ddw1].[Customer]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Customer].[CustomerID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Customer].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[ddw1]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="3" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="4" />
+		</Element>
+		<Element Type="SqlProcedure" Name="[ddw1].[DropTableConstraints]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: DropTableConstraints.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      ddw1.DropTableConstraints
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Drops all ddw1 Table Constraints  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC ddw1.DropTableConstraints
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50),
+        @SQL       NVARCHAR(MAX);
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SQL = SPACE(0);
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed DROP TABLE CONSTRAINTS.';
+
+SELECT @SQL = @SQL + N'
+  ALTER TABLE ' + QUOTENAME(s.name) + N'.'
+  + QUOTENAME(t.name) + N' DROP CONSTRAINT '
+  + QUOTENAME(c.name) + ';'
+FROM sys.objects AS c
+  INNER JOIN sys.tables AS t
+  ON c.parent_object_id = t.[object_id]
+  INNER JOIN sys.schemas AS s
+  ON t.[schema_id] = s.[schema_id]
+WHERE c.[type] IN ('D','C','F','PK','UQ') AND s.name = 'ddw1'
+ORDER BY c.[type];
+
+RAISERROR(@SQL, 0,1) WITH NOWAIT;
+EXEC sys.sp_executesql @SQL;
+
+SET @Message = 'Completed DROP TABLE CONSTRAINTS.';
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[ddw1]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="3149" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE ddw1.DropTableConstraints&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[ddw1].[DropTables]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: DropTables.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      ddw1.DropTables
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Drops all ddw1 Tables  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC ddw1.DropTables
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50),
+        @SQL       NVARCHAR(MAX);
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SQL = SPACE(0);
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed dropping tables.';
+
+SELECT @SQL += ' Drop table ' + QUOTENAME(TABLE_SCHEMA) + '.'+ QUOTENAME(TABLE_NAME) + '; '
+FROM INFORMATION_SCHEMA.TABLES
+WHERE  TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = 'ddw1';
+
+EXECUTE sp_executesql @SQL;
+
+SET @Message = 'Completed dropping tables.';
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));   
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[ddw1]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="2845" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE ddw1.DropTables&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[ddw1].[FK_Order_Customer_CustomerID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[ddw1].[Order].[CustomerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[ddw1].[Order]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[ddw1].[Customer].[CustomerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[ddw1].[Customer]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="5" />
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[ddw1].[FK_Order_Product_ProductID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[ddw1].[Order].[ProductID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[ddw1].[Order]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[ddw1].[Product].[ProductID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[ddw1].[Product]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="6" />
+		</Element>
+		<Element Type="SqlTable" Name="[ddw1].[Order]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Order].[OrderID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Order].[CustomerID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Order].[ProductID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Order].[OrderDate]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[date]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Order].[TotalAmount]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[money]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[ddw1]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="7" />
+			<AttachedAnnotation Disambiguator="5" />
+			<AttachedAnnotation Disambiguator="6" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[ddw1].[PK_Customer_CustomerID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[ddw1].[Customer].[CustomerID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[ddw1].[Customer]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="3" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[ddw1].[PK_Order_StoreID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[ddw1].[Order].[OrderID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[ddw1].[Order]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="7" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[ddw1].[PK_Product_ProductID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[ddw1].[Product].[ProductID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[ddw1].[Product]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="8" />
+		</Element>
+		<Element Type="SqlTable" Name="[ddw1].[Product]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Product].[ProductID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[ddw1].[Product].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[ddw1]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="8" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="9" />
+		</Element>
+		<Element Type="SqlUniqueConstraint" Name="[ddw1].[UK_Customer_Name]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[ddw1].[Customer].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[ddw1].[Customer]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="4" />
+		</Element>
+		<Element Type="SqlUniqueConstraint" Name="[ddw1].[UK_Product_Name]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[ddw1].[Product].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[ddw1].[Product]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="9" />
+		</Element>
+	</Model>
+</DataSchemaModel>
