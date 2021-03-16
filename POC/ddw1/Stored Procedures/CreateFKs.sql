@@ -7,7 +7,7 @@ Procedure:      ddw1.CreateFKs
 Create Date:    2021-03-01 (yyyy-mm-dd)
 Author:         Surush Cyrus
 Description:    Creates FKs for all needed ddw1 tables  
-Call by:        TBD, UI, Add hoc
+Call by:        TBD, UI, Add hoc, testing
 Steps:          NA
 Parameter(s):   None
 Usage:          EXEC ddw1.CreateFKs
