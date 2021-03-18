@@ -1,0 +1,8 @@
+﻿CREATE TABLE [game].[Team] (
+    [TeamID] TINYINT        NOT NULL,
+    [Name]   NVARCHAR (50)  NOT NULL,
+    [Note]   NVARCHAR (250) NOT NULL,
+    CONSTRAINT [PK_Team_TeamID] PRIMARY KEY CLUSTERED ([TeamID] ASC),
+    CONSTRAINT [UK_Team_Name] UNIQUE NONCLUSTERED ([Name] ASC)
+);
+

@@ -1,0 +1,9 @@
+C:\scyrus\GitHub\SQL-DevOps\DBGame\bin\Debug\DBGame.dacpac
+C:\scyrus\GitHub\SQL-DevOps\DBGame\bin\Debug\DBGame.dll
+C:\scyrus\GitHub\SQL-DevOps\DBGame\bin\Debug\DBGame.pdb
+C:\scyrus\GitHub\SQL-DevOps\DBGame\obj\Debug\Model.xml
+C:\scyrus\GitHub\SQL-DevOps\DBGame\obj\Debug\refactor.xml
+C:\scyrus\GitHub\SQL-DevOps\DBGame\obj\Debug\postdeploy.sql
+C:\scyrus\GitHub\SQL-DevOps\DBGame\obj\Debug\predeploy.sql
+C:\scyrus\GitHub\SQL-DevOps\DBGame\obj\Debug\DBGame.dll
+C:\scyrus\GitHub\SQL-DevOps\DBGame\obj\Debug\DBGame.pdb

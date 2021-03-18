@@ -1,0 +1,5003 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DataSchemaModel FileFormatVersion="1.2" SchemaVersion="2.9" DspName="Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider" CollationLcid="1033" CollationCaseSensitive="False" xmlns="http://schemas.microsoft.com/sqlserver/dac/Serialization/2012/02">
+	<Header>
+		<CustomData Category="AnsiNulls">
+			<Metadata Name="AnsiNulls" Value="True" />
+		</CustomData>
+		<CustomData Category="QuotedIdentifier">
+			<Metadata Name="QuotedIdentifier" Value="True" />
+		</CustomData>
+		<CustomData Category="CompatibilityMode">
+			<Metadata Name="CompatibilityMode" Value="130" />
+		</CustomData>
+		<CustomData Category="Reference" Type="Assembly">
+			<Metadata Name="LogicalName" Value="DBGame.dll" />
+			<Metadata Name="FileName" Value="C:\SCYRUS\GITHUB\SQL-DEVOPS\DBGAME\OBJ\DEBUG\DBGAME.DLL" />
+			<Metadata Name="AssemblyName" Value="DBGame" />
+			<Metadata Name="PermissionSet" Value="SAFE" />
+			<Metadata Name="Owner" Value="" />
+			<Metadata Name="GenerateSqlClrDdl" Value="True" />
+			<Metadata Name="IsVisible" Value="True" />
+			<Metadata Name="IsModelAware" Value="True" />
+			<Metadata Name="SkipCreationIfEmpty" Value="True" />
+			<Metadata Name="AssemblySymbolsName" Value="C:\scyrus\GitHub\SQL-DevOps\DBGame\obj\Debug\DBGame.pdb" />
+		</CustomData>
+		<CustomData Category="SqlCmdVariables" Type="SqlCmdVariable" />
+	</Header>
+	<Model>
+		<Element Type="SqlDatabaseOptions">
+			<Property Name="Collation" Value="SQL_Latin1_General_CP1_CI_AS" />
+			<Property Name="IsAnsiNullDefaultOn" Value="True" />
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Property Name="IsAnsiWarningsOn" Value="True" />
+			<Property Name="IsArithAbortOn" Value="True" />
+			<Property Name="IsConcatNullYieldsNullOn" Value="True" />
+			<Property Name="IsTornPageProtectionOn" Value="False" />
+			<Property Name="IsFullTextEnabled" Value="True" />
+			<Property Name="PageVerifyMode" Value="3" />
+			<Property Name="DefaultLanguage" Value="" />
+			<Property Name="DefaultFullTextLanguage" Value="" />
+			<Property Name="QueryStoreStaleQueryThreshold" Value="367" />
+			<Relationship Name="DefaultFilegroup">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[PRIMARY]" />
+				</Entry>
+			</Relationship>
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Parameter].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Parameter]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="3" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[History].[RowID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[History]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="4" />
+		</Element>
+		<Element Type="SqlSchema" Name="[game]">
+			<Relationship Name="Authorizer">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[dbo]" />
+				</Entry>
+			</Relationship>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[CalTotalAmount]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: CalTotalAmount.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.CalTotalAmount
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Calculates Total Amount for an Order 
+Call by:        game.InsertOrder
+
+Steps:          1- Find the Price for a Game
+                2- Find the Discount for the Retailer based on the Quantitiy 
+                3- Calcuate the output variable @Total
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText   VARCHAR(MAX),      
+        @Message     VARCHAR(255),    
+        @StartTime   DATETIME,
+        @SP          VARCHAR(50),
+
+        @RowCount       INT,
+        @Price          MONEY,
+        @PreTotatl      MONEY,
+        @Discount       TINYINT,
+        @DiscountAmount MONEY;
+
+BEGIN TRY;
+SET @RowCount = 0;
+SET @Price = 0;
+SET @PreTotatl = 0;
+SET @Discount = 0;
+SET @DiscountAmount = 0;
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();
+
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Start',
+   @Message = @Message;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed SELECT from Game table!';
+
+SET @Price = (SELECT Price
+FROM game.Game
+WHERE GameID = @GameID);
+SET @RowCount = @@ROWCOUNT
+
+IF @RowCount = 0
+BEGIN
+    SET @ErrorText = '@Price = '+ CONVERT(VARCHAR(10), @Price) + ' Not able to get needed value!. Rasing Error!';
+    RAISERROR(@ErrorText, 16,1);
+END;
+
+SET @Message = '@Price = ' + CONVERT(VARCHAR(10), @Price) + ' calculated from game.Game for GameID '+ CONVERT(VARCHAR(10), @GameID) + '.';
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+                        @Status = 'Run',
+                        @Message = @Message;
+
+-- SELECT @Price = Price
+-- FROM game.Game
+-- WHERE GameID = @GameID
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed SELECT from Retailer table!';
+
+SET @Discount = (SELECT MAX(D.Amount)
+FROM game.Retailer R
+    INNER JOIN game.Discount D
+    ON R.RetailerID = D.RetailerID
+WHERE  R.RetailerID = @RetailerID AND
+    @Quantity BETWEEN D.MinQuantity AND D.MaxQuantity);
+SET @RowCount = @@ROWCOUNT
+
+IF @RowCount = 0
+BEGIN
+    SET @ErrorText = '@Discount = '+ CONVERT(VARCHAR(10), @Discount) + ' Not able to get needed value!. Rasing Error!';
+    RAISERROR(@ErrorText, 16,1);
+END;
+
+SET @Message = '@Discount = ' + CONVERT(VARCHAR(10), @Discount) + ' calculated from game.Retailer for @Quantity '+ CONVERT(VARCHAR(10), @Quantity) + '.';
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+                        @Status = 'Run',
+                        @Message = @Message;
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed calculating Total!';
+
+SET @PreTotatl = (@Price * @Quantity);
+SET @DiscountAmount = (@PreTotatl * @Discount/100);
+SET @Total = (@PreTotatl - @DiscountAmount);
+
+SET @Message = '@Total = ' + CONVERT(VARCHAR(10), @Total) + '.';
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+                        @Status = 'Run',
+                        @Message = @Message;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '    
+      + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR (@Message, 0,1) WITH NOWAIT;    
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'End',
+   @Message = @Message;
+
+END TRY
+
+BEGIN CATCH;      
+   IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;      
+      
+   SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText; 
+
+   EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Error',
+   @Message = @ErrorText;
+     
+   RAISERROR(@ErrorText,18,127) WITH NOWAIT;      
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[money]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[money]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[money]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@SP]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Status]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Message]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[Price]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount].[@GameID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[Amount]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount].[@RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount].[@Quantity]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[MinQuantity]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[MaxQuantity]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount].[@Total]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Parameters">
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[CalTotalAmount].[@GameID]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[CalTotalAmount].[@RetailerID]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[CalTotalAmount].[@Quantity]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[CalTotalAmount].[@Total]">
+						<Property Name="IsOutput" Value="True" />
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[money]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="5528" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.CalTotalAmount&#xD;&#xA;    @GameID     TINYINT,&#xD;&#xA;    @RetailerID TINYINT,&#xD;&#xA;    @Quantity   INT,&#xD;&#xA;    @Total      MONEY OUTPUT&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[CreateFKs]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: CreateFKs.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.CreateFKs
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Creates FKs for all needed game tables  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.CreateFKs
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50)
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SP = OBJECT_NAME(@@PROCID)
+SET @StartTime = GETDATE();
+   
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+    @Status = 'Start',
+    @Message = @Message;
+
+    -------------------------------------------------------------------------------
+SET @ErrorText = 'Failed adding FOREIGN KEY for Table game.Discount.';
+
+IF EXISTS (SELECT *
+FROM sys.foreign_keys
+WHERE object_id = OBJECT_ID(N'game.FK_Discount_Retailer_RetailerID')
+  AND parent_object_id = OBJECT_ID(N'game.Discount')
+)
+BEGIN
+  SET @Message = 'FOREIGN KEY for Table game.Discount already exist, skipping....';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+  ALTER TABLE game.Discount
+   ADD CONSTRAINT FK_Discount_Retailer_RetailerID FOREIGN KEY (RetailerID)
+      REFERENCES game.Retailer (RetailerID);
+
+  SET @Message = 'Completed adding FOREIGN KEY for TABLE game.Discount.';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Run',
+   @Message = @Message;
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed adding FOREIGN KEY for Table game.Game.';
+
+IF EXISTS (SELECT *
+FROM sys.foreign_keys
+WHERE object_id = OBJECT_ID(N'game.FK_Game_Type_TypeID')
+  AND parent_object_id = OBJECT_ID(N'game.Game')
+)
+BEGIN
+  SET @Message = 'FOREIGN KEY for Table game.Game already exist, skipping....';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+  ALTER TABLE game.Game
+   ADD CONSTRAINT FK_Game_Type_TypeID FOREIGN KEY (TypeID)
+      REFERENCES game.Type (TypeID),
+      CONSTRAINT FK_Game_Partner_PartnerID FOREIGN KEY (PartnerID)
+  REFERENCES game.Partner (PartnerID);
+
+  SET @Message = 'Completed adding FOREIGN KEY for TABLE game.Game.';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Run',
+   @Message = @Message;
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed adding FOREIGN KEY for Table game.GameTeam.';
+
+IF EXISTS (SELECT *
+FROM sys.foreign_keys
+WHERE object_id = OBJECT_ID(N'game.FK_GameTeam_Game_GameID')
+  AND parent_object_id = OBJECT_ID(N'game.GameTeam')
+)
+BEGIN
+  SET @Message = 'FOREIGN KEY for Table game.GameTeam already exist, skipping....';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+  ALTER TABLE game.GameTeam
+   ADD CONSTRAINT FK_GameTeam_Game_GameID FOREIGN KEY (GameID)
+      REFERENCES game.Game (GameID),
+      CONSTRAINT FK_GameTeam_Team_TeamID FOREIGN KEY (TeamID)
+  REFERENCES game.Team (TeamID);
+
+  SET @Message = 'Completed adding FOREIGN KEY for TABLE game.GameTeam.';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Run',
+   @Message = @Message;
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed adding FOREIGN KEY for Table game.PartnerInfo.';
+
+IF EXISTS (SELECT *
+FROM sys.foreign_keys
+WHERE object_id = OBJECT_ID(N'game.FK_PartnerInfo_Partner_PartnerID')
+  AND parent_object_id = OBJECT_ID(N'game.PartnerInfo')
+)
+BEGIN
+  SET @Message = 'FOREIGN KEY for Table game.PartnerInfo already exist, skipping....';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+  ALTER TABLE game.PartnerInfo
+   ADD CONSTRAINT FK_PartnerInfo_Partner_PartnerID FOREIGN KEY (PartnerID)
+       REFERENCES game.Partner (PartnerID);
+
+  SET @Message = 'Completed adding FOREIGN KEY for TABLE game.PartnerInfo.';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Run',
+   @Message = @Message;
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed adding FOREIGN KEY for Table game.Order.';
+
+IF EXISTS (SELECT *
+FROM sys.foreign_keys
+WHERE object_id = OBJECT_ID(N'game.FK_Order_Retailer_RetailerID')
+  AND parent_object_id = OBJECT_ID(N'game.Order')
+)
+BEGIN
+  SET @Message = 'FOREIGN KEY for Table game.Order already exist, skipping....';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Run',
+   @Message = @Message;
+END
+ELSE
+BEGIN
+  ALTER TABLE game.[Order]
+   ADD CONSTRAINT FK_Order_Retailer_RetailerID FOREIGN KEY (RetailerID)
+      REFERENCES game.Retailer (RetailerID),
+    CONSTRAINT FK_Order_Game_GameID FOREIGN KEY (GameID)
+      REFERENCES game.Game (GameID);
+
+  SET @Message = 'Completed adding FOREIGN KEY for TABLE game.Order.';
+  RAISERROR(@Message, 0,1) WITH NOWAIT;
+  EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Run',
+   @Message = @Message;
+END
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'End',
+   @Message = @Message
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Error',
+   @Message = @ErrorText
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@SP]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Status]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Message]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References Name="[game].[Discount]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[FK_Discount_Retailer_RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[FK_Game_Type_TypeID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[TypeID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type].[TypeID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[FK_Game_Partner_PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[FK_GameTeam_Game_GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam].[GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[FK_GameTeam_Team_TeamID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam].[TeamID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team].[TeamID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[FK_PartnerInfo_Partner_PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[FK_Order_Retailer_RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[FK_Order_Game_GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[GameID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="7807" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.CreateFKs&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[CreateHistoryTable]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: CreateHistoryTable.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.CreateHistoryTable
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Creates game.History table  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.CreateHistoryTable
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50)
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SP = OBJECT_NAME(@@PROCID)
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed Creating game.History table.';
+
+IF OBJECT_ID('game.History', 'U') IS NOT NULL
+    DROP TABLE game.History
+
+CREATE TABLE game.History
+(
+    RowID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Time CHAR(19) NOT NULL,
+    SP VARCHAR(50) NOT NULL,
+    -- Start, End, Run, Error
+    Status VARCHAR(5) NOT NULL,
+    Message VARCHAR(MAX) NOT NULL
+);
+
+SET @Message = 'Completed Creating table game.History ' ;   
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + 'Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+END TRY
+
+BEGIN CATCH;      
+   IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;      
+      
+   SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                     +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                     +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                     +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                     +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                     +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                     +', SP Defined Error Text = '+@ErrorText;      
+
+   RAISERROR(@ErrorText,18,127) WITH NOWAIT;      
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[RowID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[Time]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[char]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[SP]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[Status]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[Message]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="3009" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.CreateHistoryTable&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[CreateParameterTable]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: CreateParameterTable.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.CreateParameterTable
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Creates game.Parameter table  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.CreateParameterTable
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50)
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SP = OBJECT_NAME(@@PROCID)
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed Creating game.Parameter table.';
+
+IF OBJECT_ID('game.Parameter', 'U') IS NOT NULL
+    DROP TABLE game.Parameter
+
+CREATE TABLE game.Parameter
+(
+    Name VARCHAR(20) NOT NULL PRIMARY KEY,
+    NumValue INT NULL,
+    CharValue VARCHAR(20) NULL,
+    Note VARCHAR(250) NULL
+);
+
+SET @Message = 'Completed Creating table game.Parameter ' ;   
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + 'Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+END TRY
+
+BEGIN CATCH;      
+   IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;      
+      
+   SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                     +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                     +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                     +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                     +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                     +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                     +', SP Defined Error Text = '+@ErrorText;      
+
+   RAISERROR(@ErrorText,18,127) WITH NOWAIT;      
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter].[NumValue]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter].[CharValue]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter].[Note]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="2949" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.CreateParameterTable&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[CreateTables]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: CreateTables.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.CreateTables
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Creates all needed game tables  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.CreateTables
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50)
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';  
+
+SET @SP = OBJECT_NAME(@@PROCID)
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');  
+ 
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+    @Status = 'Start',
+    @Message = @Message;
+
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.Retailer.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.Retailer') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.Retailer already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.Retailer
+    (
+        RetailerID TINYINT NOT NULL,
+        Name NVARCHAR(50) NOT NULL,
+        Website NVARCHAR(50) NOT NULL,
+        Address NVARCHAR(50) NOT NULL,
+        City NVARCHAR(50) NOT NULL,
+        Zip NVARCHAR(50) NOT NULL,
+        CONSTRAINT PK_Retailer_RetailerID PRIMARY KEY CLUSTERED (RetailerID),
+        CONSTRAINT UK_Retailer_Name UNIQUE (Name)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.Retailer.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.Discount.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.Discount') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.Discount already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.Discount
+    (
+        DiscountID TINYINT NOT NULL,
+        RetailerID TINYINT NOT NULL,
+        Name NVARCHAR(50) NOT NULL,
+        MinQuantity INT NOT NULL,
+        MaxQuantity INT NOT NULL,
+        Amount TINYINT NOT NULL,
+        CONSTRAINT PK_Discount_DiscountID PRIMARY KEY CLUSTERED (DiscountID),
+        CONSTRAINT UK_Discount_Name UNIQUE (Name)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.Discount.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.Order.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.Order') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.Order already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.[Order]
+    (
+        OrderID INT NOT NULL,
+        GameID TINYINT NOT NULL,
+        RetailerID TINYINT NOT NULL,
+        OrderDate DATETIME NOT NULL,
+        Quantity INT NOT NULL,
+        TotalAmount MONEY NOT NULL,
+        CONSTRAINT PK_Order_StoreID PRIMARY KEY CLUSTERED (OrderID)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.Order.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.Game.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.Game') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.Game already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.Game
+    (
+        GameID TINYINT NOT NULL,
+        TypeID TINYINT NOT NULL,
+        PartnerID TINYINT NOT NULL,
+        Name NVARCHAR(50) NOT NULL,
+        Price MONEY NOT NULL,
+        Note NVARCHAR(250) NOT NULL,
+        CONSTRAINT PK_Game_GameID PRIMARY KEY CLUSTERED (GameID),
+        CONSTRAINT UK_Game_Name UNIQUE (Name)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.Game.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.Type.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.Type') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.Type already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.Type
+    (
+        TypeID TINYINT NOT NULL,
+        Name NVARCHAR(50) NOT NULL,
+        Note NVARCHAR(250) NOT NULL,
+        CONSTRAINT PK_Type_TypeID PRIMARY KEY CLUSTERED (TypeID),
+        CONSTRAINT UK_Type_Name UNIQUE (Name)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.Type.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.GameTeam.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.GameTeam') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.GameTeam already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.GameTeam
+    (
+        GameID TINYINT NOT NULL,
+        TeamID TINYINT NOT NULL,
+        RoyaltyPer MONEY NOT NULL,
+        CONSTRAINT PK_GameTeam_GameIDTeamID PRIMARY KEY CLUSTERED (GameID, TeamID)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.GameTeam.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.Team.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.Team') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.Team already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.Team
+    (
+        TeamID TINYINT NOT NULL,
+        Name NVARCHAR(50) NOT NULL,
+        Note NVARCHAR(250) NOT NULL,
+        CONSTRAINT PK_Team_TeamID PRIMARY KEY CLUSTERED (TeamID),
+        CONSTRAINT UK_Team_Name UNIQUE (Name)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.Team.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.Partner.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.Partner') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.Partner already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.Partner
+    (
+        PartnerID TINYINT NOT NULL,
+        Name NVARCHAR(50) NOT NULL,
+        CONSTRAINT PK_Partner_PartnerID PRIMARY KEY CLUSTERED (PartnerID),
+        CONSTRAINT UK_Partner_Name UNIQUE (Name)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.Partner.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed CREATE Table game.PartnerInfo.';
+
+IF EXISTS (SELECT *
+FROM sys.objects
+WHERE object_id = OBJECT_ID(N'game.PartnerInfo') AND type in (N'U'))
+BEGIN
+    SET @Message = 'Table game.PartnerInfo already exist, skipping....';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message;
+END
+ELSE
+BEGIN
+    CREATE TABLE game.PartnerInfo
+    (
+        PartnerID TINYINT NOT NULL,
+        Website NVARCHAR(50) NOT NULL,
+        City NVARCHAR(50) NOT NULL,
+        State NVARCHAR(50) NOT NULL,
+        Country NVARCHAR(50) NOT NULL,
+        Note NVARCHAR(250) NOT NULL,
+        CONSTRAINT PK_PartnerInfo_PartnerID PRIMARY KEY CLUSTERED (PartnerID)
+    );
+
+    SET @Message = 'Completed CREATE TABLE game.PartnerInfo.';
+    RAISERROR(@Message, 0,1) WITH NOWAIT;
+    EXEC game.InsertHistory @SP = @SP,
+        @Status = 'Run',
+        @Message = @Message
+END
+-------------------------------------------------------------------------------
+
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));   
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+    @Status = 'End',
+    @Message = @Message
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Error',
+   @Message = @ErrorText
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@SP]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Status]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Message]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[Website]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[Address]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[City]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[Zip]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_Retailer_RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[UK_Retailer_Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[DiscountID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[MinQuantity]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[MaxQuantity]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[Amount]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_Discount_DiscountID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[DiscountID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[UK_Discount_Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[OrderID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[GameID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[OrderDate]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[Quantity]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[TotalAmount]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[money]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_Order_StoreID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[OrderID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[GameID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[TypeID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[Price]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[money]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[Note]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_Game_GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[UK_Game_Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type].[TypeID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type].[Note]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_Type_TypeID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type].[TypeID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[UK_Type_Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam].[GameID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam].[TeamID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam].[RoyaltyPer]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[money]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_GameTeam_GameIDTeamID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam].[GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam].[TeamID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team].[TeamID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team].[Note]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_Team_TeamID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team].[TeamID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[UK_Team_Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[Name]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_Partner_PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[UK_Partner_Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[tinyint]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[Website]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[City]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[State]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[Country]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[Note]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PK_PartnerInfo_PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="12285" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.CreateTables&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlTable" Name="[game].[Discount]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Discount].[DiscountID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Discount].[RetailerID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Discount].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Discount].[MinQuantity]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Discount].[MaxQuantity]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Discount].[Amount]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="5" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="6" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="7" />
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[DropFKs]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: DropFKs.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.DropFKs
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Drops all game Table Constraints  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.DropFKs
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50),
+        @SQL       NVARCHAR(MAX);
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SQL = SPACE(0);
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed DROP TABLE CONSTRAINTS.';
+
+SELECT @SQL = @SQL + N'
+  ALTER TABLE ' + QUOTENAME(s.name) + N'.'
+  + QUOTENAME(t.name) + N' DROP CONSTRAINT '
+  + QUOTENAME(c.name) + ';'
+FROM sys.objects AS c
+  INNER JOIN sys.tables AS t
+  ON c.parent_object_id = t.[object_id]
+  INNER JOIN sys.schemas AS s
+  ON t.[schema_id] = s.[schema_id]
+WHERE c.[type] = 'F' AND s.name = 'game'
+ORDER BY c.[type];
+
+RAISERROR(@SQL, 0,1) WITH NOWAIT;
+EXEC sys.sp_executesql @SQL;
+
+SET @Message = 'Completed DROP TABLE CONSTRAINTS.';
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="3076" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.DropFKs&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[DropSPs]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: DropSPs.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.DropSPs
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Drops all game SPs  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.DropSPs
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50),
+        @SQL       NVARCHAR(MAX);
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';  
+
+SET @SQL = SPACE(0);
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed dropping SPs.';
+
+SELECT @SQL = @SQL + N'
+	DROP PROCEDURE [' + SCHEMA_NAME(schema_id) + '].[' + NAME + '];'
+FROM sys.procedures
+WHERE SCHEMA_NAME(schema_id) = N'game'
+RAISERROR(@SQL, 0,1) WITH NOWAIT;
+
+EXEC sys.sp_executesql @SQL;
+
+SET @Message = 'Completed dropping SPs.';
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));   
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="2829" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.DropSPs&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[DropTableConstraints]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: DropTableConstraints.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.DropTableConstraints
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Drops all game Table Constraints  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.DropTableConstraints
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50),
+        @SQL       NVARCHAR(MAX);
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SQL = SPACE(0);
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed DROP TABLE CONSTRAINTS.';
+
+SELECT @SQL = @SQL + N'
+  ALTER TABLE ' + QUOTENAME(s.name) + N'.'
+  + QUOTENAME(t.name) + N' DROP CONSTRAINT '
+  + QUOTENAME(c.name) + ';'
+FROM sys.objects AS c
+  INNER JOIN sys.tables AS t
+  ON c.parent_object_id = t.[object_id]
+  INNER JOIN sys.schemas AS s
+  ON t.[schema_id] = s.[schema_id]
+WHERE c.[type] IN ('D','C','F','PK','UQ') AND s.name = 'game'
+ORDER BY c.[type];
+
+RAISERROR(@SQL, 0,1) WITH NOWAIT;
+EXEC sys.sp_executesql @SQL;
+
+SET @Message = 'Completed DROP TABLE CONSTRAINTS.';
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="3149" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.DropTableConstraints&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[DropTables]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: DropTables.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.DropTables
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Drops all game Tables  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.DropTables
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50),
+        @SQL       NVARCHAR(MAX);
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SQL = SPACE(0);
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed dropping tables.';
+
+SELECT @SQL += ' Drop table ' + QUOTENAME(TABLE_SCHEMA) + '.'+ QUOTENAME(TABLE_NAME) + '; '
+FROM INFORMATION_SCHEMA.TABLES
+WHERE  TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = 'game';
+
+EXECUTE sp_executesql @SQL;
+
+SET @Message = 'Completed dropping tables.';
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));   
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry />
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="2845" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.DropTables&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[game].[FK_Discount_Retailer_RetailerID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[game].[Discount].[RetailerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Discount]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[game].[Retailer].[RetailerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="6" />
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[game].[FK_Game_Partner_PartnerID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[game].[Game].[PartnerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[game].[Partner].[PartnerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="8" />
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[game].[FK_Game_Type_TypeID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[game].[Game].[TypeID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[game].[Type].[TypeID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[game].[Type]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="9" />
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[game].[FK_GameTeam_Game_GameID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[game].[GameTeam].[GameID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[GameTeam]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[game].[Game].[GameID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="10" />
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[game].[FK_GameTeam_Team_TeamID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[game].[GameTeam].[TeamID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[GameTeam]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[game].[Team].[TeamID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[game].[Team]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="11" />
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[game].[FK_Order_Game_GameID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[game].[Order].[GameID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Order]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[game].[Game].[GameID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="12" />
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[game].[FK_Order_Retailer_RetailerID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[game].[Order].[RetailerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Order]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[game].[Retailer].[RetailerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="13" />
+		</Element>
+		<Element Type="SqlForeignKeyConstraint" Name="[game].[FK_PartnerInfo_Partner_PartnerID]">
+			<Relationship Name="Columns">
+				<Entry>
+					<References Name="[game].[PartnerInfo].[PartnerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[PartnerInfo]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignColumns">
+				<Entry>
+					<References Name="[game].[Partner].[PartnerID]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="ForeignTable">
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="14" />
+		</Element>
+		<Element Type="SqlTable" Name="[game].[Game]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Game].[GameID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Game].[TypeID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Game].[PartnerID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Game].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Game].[Price]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[money]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Game].[Note]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="250" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="15" />
+			<AttachedAnnotation Disambiguator="8" />
+			<AttachedAnnotation Disambiguator="9" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="16" />
+		</Element>
+		<Element Type="SqlTable" Name="[game].[GameTeam]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[GameTeam].[GameID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[GameTeam].[TeamID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[GameTeam].[RoyaltyPer]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[money]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="17" />
+			<AttachedAnnotation Disambiguator="10" />
+			<AttachedAnnotation Disambiguator="11" />
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[GetMaxOrderID]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+
+SET NOCOUNT ON;
+
+DECLARE @ErrorText   VARCHAR(MAX),      
+        @Message     VARCHAR(255),    
+        @StartTime   DATETIME,
+        @SP          VARCHAR(50)
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();
+
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Start',
+   @Message = @Message
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed SELECT from table Order!';
+
+IF(NOT EXISTS(SELECT 1
+FROM game.[Order]))
+BEGIN
+    SET @MaxOrderID = (SELECT NumValue
+    FROM game.Parameter
+    WHERE NAME = 'StartOrderID');
+END
+ELSE
+BEGIN
+    SET @MaxOrderID = (SELECT MAX(OrderID) + 1
+    FROM game.[Order]);
+END;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '    
+      + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR (@Message, 0,1) WITH NOWAIT;    
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'End',
+   @Message = @Message
+
+END TRY
+
+BEGIN CATCH;      
+   IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;      
+      
+   SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText; 
+
+   EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Error',
+   @Message = @ErrorText
+     
+   RAISERROR(@ErrorText,18,127) WITH NOWAIT;      
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@SP]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Status]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Message]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GetMaxOrderID].[@MaxOrderID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter].[NumValue]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Parameter].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[OrderID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Parameters">
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[GetMaxOrderID].[@MaxOrderID]">
+						<Property Name="IsOutput" Value="True" />
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="2221" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.GetMaxOrderID&#xD;&#xA;    @MaxOrderID INT OUTPUT&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlTable" Name="[game].[History]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[History].[RowID]">
+						<Property Name="IsNullable" Value="False" />
+						<Property Name="IsIdentity" Value="True" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[History].[Time]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="19" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[char]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[History].[SP]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[History].[Status]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="5" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[History].[Message]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="IsMax" Value="True" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="4" />
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[InsertHistory]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: InsertHistory.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.InsertHistory
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Inserts to game.History table  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.InsertHistory
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText   VARCHAR(MAX),  
+        @Time        CHAR(19);
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @Time = (SELECT FORMAT(GETDATE() , 'MM/dd/yyyy HH:mm:ss'));
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed INSERT to table History!';
+INSERT INTO game.History
+    (Time, SP, Status, Message)
+VALUES
+    (@Time, @SP, @Status, @Message);
+-------------------------------------------------------------------------------
+
+END TRY
+
+BEGIN CATCH;      
+   IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;      
+      
+   SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                     +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                     +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                     +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                     +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                     +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                     +', SP Defined Error Text = '+@ErrorText;      
+   RAISERROR(@ErrorText,18,127) WITH NOWAIT;      
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[char]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[Time]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[SP]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[Status]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[History].[Message]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@SP]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Status]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Message]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Parameters">
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[InsertHistory].[@SP]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[InsertHistory].[@Status]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="5" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[InsertHistory].[@Message]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="IsMax" Value="True" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="2343" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.InsertHistory&#xD;&#xA;    @SP      VARCHAR(50),&#xD;&#xA;    @Status  VARCHAR(5),&#xD;&#xA;    @Message VARCHAR(MAX)&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[InsertOrder]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: InsertOrder.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.InsertOrder
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Insert an order
+Call by:        Add Hoc
+
+Steps:          1- Check the @GameID for RI issue in game.Game table 
+                2- Check the @RetailerID for RI issue in game.Retailer table
+                3- Call SP game.GetMaxOrderID to calculate @TotalAmount
+                4- Call SP game.CalTotalAmount to get @OrderID
+                5- Insert to table game.[Order]
+
+Parameter(s):   @OrderID
+                @RetailerID
+                @Quantity
+
+Usage:          EXEC game.InsertOrder @GameID = 1,
+                                 @RetailerID = 1,
+                                 @Quantity = 200
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText   VARCHAR(MAX),      
+        @Message     VARCHAR(255),    
+        @StartTime   DATETIME,
+        @SP          VARCHAR(50),
+
+        @OrderID     INT,
+        @TotalAmount MONEY;
+
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';
+
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();
+
+SET @OrderID = 0;
+SET @TotalAmount = 0;
+
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Start',
+   @Message = @Message
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed SELECT from table Game!';
+-- Check to give a friendly error for RI Issue.
+IF NOT EXISTS(SELECT 1
+FROM game.Game
+WHERE GameID = @GameID)
+BEGIN
+    SET @ErrorText = 'GameID = ' + CONVERT(VARCHAR(10), @GameID) + ' not found in table Game! This is not acceptable. Rasing Error!';
+    RAISERROR(@ErrorText, 16,1);
+END;
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed SELECT from table Retailer!';
+-- Check to give a friendly error for RI Issue.
+IF NOT EXISTS(SELECT 1
+FROM game.Retailer
+WHERE RetailerID = @RetailerID)
+BEGIN
+    SET @ErrorText = 'RetailerID = ' + CONVERT(VARCHAR(10), @RetailerID) + ' not found in table Retailer! This is not acceptable. Rasing Error!';
+    RAISERROR(@ErrorText, 16,1);
+END;
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed Calling SP GetMaxOrderID!';
+EXEC game.GetMaxOrderID @MaxOrderID = @OrderID OUTPUT;
+
+SET @Message = 'OrderID = ' + CONVERT(VARCHAR(10), @OrderID) + ' is the return value from SP game.GetMaxOrderID.';
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+@Status = 'Run',
+@Message = @Message;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed Calling SP CalTotalAmount!';
+EXEC game.CalTotalAmount @GameID = @GameID,
+                        @RetailerID = @RetailerID,
+                        @Quantity = @Quantity,
+                        @Total =  @TotalAmount OUTPUT;
+
+SET @Message = '@TotalAmount = ' + CONVERT(VARCHAR(10), @TotalAmount) + ' is the return value from SP game.CalTotalAmount.';
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+                            @Status = 'Run',
+                            @Message = @Message;
+-------------------------------------------------------------------------------
+
+SET @ErrorText = 'Failed INSERT to table Order!';
+INSERT INTO game.[Order]
+    (OrderID, GameID, RetailerID, OrderDate, Quantity, TotalAmount)
+VALUES
+    (@OrderID, @GameID, @RetailerID, GETDATE(), @Quantity, @TotalAmount)
+
+SET @Message = CONVERT(VARCHAR(10), @@ROWCOUNT) + ' rows effected. Completed INSERT to table Order using OrderID = ' + CONVERT(VARCHAR(10), @OrderID) ;   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Run',
+   @Message = @Message
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '    
+      + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));    
+RAISERROR (@Message, 0,1) WITH NOWAIT;    
+EXEC game.InsertHistory @SP = @SP,
+   @Status = 'End',
+   @Message = @Message
+
+END TRY
+
+BEGIN CATCH;      
+   IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;      
+      
+   SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText; 
+
+   EXEC game.InsertHistory @SP = @SP,
+   @Status = 'Error',
+   @Message = @ErrorText
+     
+   RAISERROR(@ErrorText,18,127) WITH NOWAIT;      
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[int]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[money]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@SP]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Status]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertHistory].[@Message]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertOrder].[@GameID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertOrder].[@RetailerID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GetMaxOrderID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GetMaxOrderID].[@MaxOrderID]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount].[@GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount].[@RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount].[@Quantity]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[InsertOrder].[@Quantity]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[CalTotalAmount].[@Total]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[OrderID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[OrderDate]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[Quantity]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order].[TotalAmount]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Parameters">
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[InsertOrder].[@GameID]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[InsertOrder].[@RetailerID]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSubroutineParameter" Name="[game].[InsertOrder].[@Quantity]">
+						<Relationship Name="Type">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="6031" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.InsertOrder&#xD;&#xA;    @GameID     TINYINT,&#xD;&#xA;    @RetailerID TINYINT,&#xD;&#xA;    @Quantity   INT&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlTable" Name="[game].[Order]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Order].[OrderID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Order].[GameID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Order].[RetailerID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Order].[OrderDate]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[datetime]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Order].[Quantity]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Order].[TotalAmount]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[money]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="18" />
+			<AttachedAnnotation Disambiguator="12" />
+			<AttachedAnnotation Disambiguator="13" />
+		</Element>
+		<Element Type="SqlTable" Name="[game].[Parameter]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Parameter].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="20" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Parameter].[NumValue]">
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[int]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Parameter].[CharValue]">
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="20" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Parameter].[Note]">
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="250" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[varchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="3" />
+		</Element>
+		<Element Type="SqlTable" Name="[game].[Partner]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Partner].[PartnerID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Partner].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="19" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="20" />
+		</Element>
+		<Element Type="SqlTable" Name="[game].[PartnerInfo]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[PartnerInfo].[PartnerID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[PartnerInfo].[Website]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[PartnerInfo].[City]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[PartnerInfo].[State]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[PartnerInfo].[Country]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[PartnerInfo].[Note]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="250" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="21" />
+			<AttachedAnnotation Disambiguator="14" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_Discount_DiscountID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Discount].[DiscountID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Discount]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="5" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_Game_GameID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Game].[GameID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="15" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_GameTeam_GameIDTeamID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[GameTeam].[GameID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[GameTeam].[TeamID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[GameTeam]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="17" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_Order_StoreID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Order].[OrderID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Order]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="18" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_Partner_PartnerID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Partner].[PartnerID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="19" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_PartnerInfo_PartnerID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[PartnerInfo].[PartnerID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[PartnerInfo]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="21" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_Retailer_RetailerID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Retailer].[RetailerID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="22" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_Team_TeamID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Team].[TeamID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Team]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="23" />
+		</Element>
+		<Element Type="SqlPrimaryKeyConstraint" Name="[game].[PK_Type_TypeID]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Type].[TypeID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Type]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="24" />
+		</Element>
+		<Element Type="SqlTable" Name="[game].[Retailer]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Retailer].[RetailerID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Retailer].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Retailer].[Website]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Retailer].[Address]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Retailer].[City]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Retailer].[Zip]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="22" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="25" />
+		</Element>
+		<Element Type="SqlTable" Name="[game].[Team]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Team].[TeamID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Team].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Team].[Note]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="250" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="23" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="26" />
+		</Element>
+		<Element Type="SqlProcedure" Name="[game].[TruncateBeforeLoad]">
+			<Property Name="BodyScript">
+				<Value><![CDATA[
+/***************************************************************************************************
+File: TruncateBeforeLoad.sql
+----------------------------------------------------------------------------------------------------
+Procedure:      game.TruncateBeforeLoad
+Create Date:    2021-03-01 (yyyy-mm-dd)
+Author:         Surush Cyrus
+Description:    Drops all game SPs  
+Call by:        TBD, UI, Add hoc
+Steps:          NA
+Parameter(s):   None
+Usage:          EXEC game.TruncateBeforeLoad
+****************************************************************************************************
+SUMMARY OF CHANGES
+Date(yyyy-mm-dd)    Author              Comments
+------------------- ------------------- ------------------------------------------------------------
+****************************************************************************************************/
+SET NOCOUNT ON;
+
+DECLARE @ErrorText VARCHAR(MAX),      
+        @Message   VARCHAR(255),   
+        @StartTime DATETIME,
+        @SP        VARCHAR(50),
+        @SQL       NVARCHAR(MAX);
+
+BEGIN TRY;   
+SET @ErrorText = 'Unexpected ERROR in setting the variables!';  
+
+SET @SQL = SPACE(0);
+SET @SP = OBJECT_NAME(@@PROCID);
+SET @StartTime = GETDATE();    
+SET @Message = 'Started SP ' + @SP + ' at ' + FORMAT(@StartTime , 'MM/dd/yyyy HH:mm:ss');   
+RAISERROR (@Message, 0,1) WITH NOWAIT;
+
+-------------------------------------------------------------------------------
+SET @ErrorText = 'Failed Truncate Tables!';
+
+TRUNCATE TABLE game.Retailer;
+TRUNCATE TABLE game.Discount;
+TRUNCATE TABLE game.[Order];
+TRUNCATE TABLE game.Game;
+TRUNCATE TABLE game.Type;
+TRUNCATE TABLE game.GameTeam;
+TRUNCATE TABLE game.Team;
+TRUNCATE TABLE game.Partner;
+TRUNCATE TABLE game.PartnerInfo;
+
+SET @Message = 'Completed Truncate Tables.';
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+-------------------------------------------------------------------------------
+
+SET @Message = 'Completed SP ' + @SP + '. Duration in minutes:  '   
+   + CONVERT(VARCHAR(12), CONVERT(DECIMAL(6,2),datediff(mi, @StartTime, getdate())));   
+RAISERROR(@Message, 0,1) WITH NOWAIT;
+
+END TRY
+
+BEGIN CATCH;
+IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+SET @ErrorText = 'Error: '+CONVERT(VARCHAR,ISNULL(ERROR_NUMBER(),'NULL'))      
+                  +', Severity = '+CONVERT(VARCHAR,ISNULL(ERROR_SEVERITY(),'NULL'))      
+                  +', State = '+CONVERT(VARCHAR,ISNULL(ERROR_STATE(),'NULL'))      
+                  +', Line = '+CONVERT(VARCHAR,ISNULL(ERROR_LINE(),'NULL'))      
+                  +', Procedure = '+CONVERT(VARCHAR,ISNULL(ERROR_PROCEDURE(),'NULL'))      
+                  +', Server Error Message = '+CONVERT(VARCHAR(100),ISNULL(ERROR_MESSAGE(),'NULL'))      
+                  +', SP Defined Error Text = '+@ErrorText;
+
+RAISERROR(@ErrorText,18,127) WITH NOWAIT;
+END CATCH;]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="BodyDependencies">
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[datetime]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Discount]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Order]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[GameTeam]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Team]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[decimal]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+				<Entry>
+					<References ExternalSource="BuiltIns" Name="[varchar]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="2927" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   PROCEDURE game.TruncateBeforeLoad&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlTable" Name="[game].[Type]">
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Type].[TypeID]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[tinyint]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Type].[Name]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="50" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlSimpleColumn" Name="[game].[Type].[Note]">
+						<Property Name="IsNullable" Value="False" />
+						<Relationship Name="TypeSpecifier">
+							<Entry>
+								<Element Type="SqlTypeSpecifier">
+									<Property Name="Length" Value="250" />
+									<Relationship Name="Type">
+										<Entry>
+											<References ExternalSource="BuiltIns" Name="[nvarchar]" />
+										</Entry>
+									</Relationship>
+								</Element>
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="24" />
+			<Annotation Type="SqlInlineConstraintAnnotation" Disambiguator="27" />
+		</Element>
+		<Element Type="SqlUniqueConstraint" Name="[game].[UK_Discount_Name]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Discount].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Discount]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="7" />
+		</Element>
+		<Element Type="SqlUniqueConstraint" Name="[game].[UK_Game_Name]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Game].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="16" />
+		</Element>
+		<Element Type="SqlUniqueConstraint" Name="[game].[UK_Partner_Name]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Partner].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="20" />
+		</Element>
+		<Element Type="SqlUniqueConstraint" Name="[game].[UK_Retailer_Name]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Retailer].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="25" />
+		</Element>
+		<Element Type="SqlUniqueConstraint" Name="[game].[UK_Team_Name]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Team].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Team]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="26" />
+		</Element>
+		<Element Type="SqlUniqueConstraint" Name="[game].[UK_Type_Name]">
+			<Relationship Name="ColumnSpecifications">
+				<Entry>
+					<Element Type="SqlIndexedColumnSpecification">
+						<Relationship Name="Column">
+							<Entry>
+								<References Name="[game].[Type].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="DefiningTable">
+				<Entry>
+					<References Name="[game].[Type]" />
+				</Entry>
+			</Relationship>
+			<AttachedAnnotation Disambiguator="27" />
+		</Element>
+		<Element Type="SqlView" Name="[game].[vGame]">
+			<Property Name="QueryScript">
+				<Value><![CDATA[
+    SELECT G.GameID, G.Name, T.Name AS GameType, P.Name AS Partner, G.Note
+    FROM game.Game G
+        INNER JOIN game.Partner P
+        ON G.PartnerID = P.PartnerID
+        INNER JOIN game.Type T
+        ON G.TypeID = T.TypeID]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vGame].[GameID]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Game].[GameID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vGame].[Name]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Game].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vGame].[GameType]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Type].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vGame].[Partner]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Partner].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vGame].[Note]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Game].[Note]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="QueryDependencies">
+				<Entry>
+					<References Name="[game].[Game]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[TypeID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type].[TypeID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[GameID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Type].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Game].[Note]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="263" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   VIEW game.vGame&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlView" Name="[game].[vPartner]">
+			<Property Name="QueryScript">
+				<Value><![CDATA[
+    SELECT P1.PartnerID, P1.Name, P2.Website, P2.City, P2.[State], P2.Country, P2.Note
+    FROM game.Partner P1
+        INNER JOIN game.PartnerInfo P2
+        ON P1.PartnerID = P2.PartnerID]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vPartner].[PartnerID]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Partner].[PartnerID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vPartner].[Name]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Partner].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vPartner].[Website]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[PartnerInfo].[Website]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vPartner].[City]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[PartnerInfo].[City]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vPartner].[State]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[PartnerInfo].[State]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vPartner].[Country]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[PartnerInfo].[Country]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vPartner].[Note]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[PartnerInfo].[Note]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="QueryDependencies">
+				<Entry>
+					<References Name="[game].[Partner]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[PartnerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Partner].[Name]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[Website]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[City]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[State]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[Country]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[PartnerInfo].[Note]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="226" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   VIEW game.vPartner&#xD;&#xA;AS" />
+				<Property Name="FooterContents" Value=";" />
+			</Annotation>
+		</Element>
+		<Element Type="SqlView" Name="[game].[vRetailer]">
+			<Property Name="QueryScript">
+				<Value><![CDATA[
+    SELECT RetailerID, Name
+    FROM game.Retailer]]></Value>
+			</Property>
+			<Property Name="IsAnsiNullsOn" Value="True" />
+			<Relationship Name="Columns">
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vRetailer].[RetailerID]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Retailer].[RetailerID]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+				<Entry>
+					<Element Type="SqlComputedColumn" Name="[game].[vRetailer].[Name]">
+						<Relationship Name="ExpressionDependencies">
+							<Entry>
+								<References Name="[game].[Retailer].[Name]" />
+							</Entry>
+						</Relationship>
+					</Element>
+				</Entry>
+			</Relationship>
+			<Relationship Name="QueryDependencies">
+				<Entry>
+					<References Name="[game].[Retailer]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[RetailerID]" />
+				</Entry>
+				<Entry>
+					<References Name="[game].[Retailer].[Name]" />
+				</Entry>
+			</Relationship>
+			<Relationship Name="Schema">
+				<Entry>
+					<References Name="[game]" />
+				</Entry>
+			</Relationship>
+			<Annotation Type="SysCommentsObjectAnnotation">
+				<Property Name="Length" Value="85" />
+				<Property Name="StartLine" Value="1" />
+				<Property Name="StartColumn" Value="1" />
+				<Property Name="HeaderContents" Value="CREATE   VIEW game.vRetailer&#xD;&#xA;AS" />
+			</Annotation>
+		</Element>
+	</Model>
+</DataSchemaModel>
